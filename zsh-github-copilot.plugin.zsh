@@ -1,9 +1,9 @@
-typeset -g GH_COPILOT_RESULT_FILE
+typeset -g COPILOT_CLI_RESULT_FILE
 typeset -g RESET
 typeset -g RED
 typeset -g GREEN
 
-GH_COPILOT_RESULT_FILE="${GH_COPILOT_RESULT_FILE:-/tmp/zsh_gh_copilot_result}"
+COPILOT_CLI_RESULT_FILE="${COPILOT_CLI_RESULT_FILE:-/tmp/zsh_copilot_cli_result}"
 
 if type tput >/dev/null; then
     RESET="$(tput sgr0)"
@@ -22,13 +22,12 @@ _echo_exit() {
 
 if [[ -z $ZSH_GH_COPILOT_NO_CHECK ]]; then
     type tput >/dev/null || _echo_exit "zsh-github-copilot: tput not found."
-    type gh >/dev/null || _echo_exit "zsh-github-copilot: gh not found."
-    gh extension list | grep -q "gh[- ]copilot" || _echo_exit "zsh-github-copilot: gh copilot extension not found."
+    type copilot >/dev/null || _echo_exit "zsh-github-copilot: copilot not found. Install with: npm install -g @github/copilot"
 fi
 
-_gh_copilot() {
-    # run gh copilot without interactivity
-    echo "" | gh copilot "$@" 2>/dev/null
+_copilot_cli() {
+    # run copilot in non-interactive mode with silent output
+    copilot -p "$@" -s --allow-all-tools 2>/dev/null
 }
 
 _spinner() {
@@ -58,37 +57,26 @@ _spinner() {
     trap - SIGINT
 }
 
-_gh_copilot_spinner() {
-    # run gh copilot in the background and show a spinner
+_copilot_cli_spinner() {
+    # run copilot in the background and show a spinner
     read -r < <(
-        _gh_copilot "$@" >|"$GH_COPILOT_RESULT_FILE" &
+        _copilot_cli "$@" >|"$COPILOT_CLI_RESULT_FILE" &
         echo $!
     )
     _spinner "$REPLY" >&2
-    cat "$GH_COPILOT_RESULT_FILE"
+    cat "$COPILOT_CLI_RESULT_FILE"
 }
 
-_gh_copilot_explain() {
+_copilot_cli_explain() {
     local result
-    local pattern
-    # the explanation starts with a bullet point
-    pattern='^\s*•'
-    result="$(
-        _gh_copilot_spinner explain "$@" |
-            grep "$pattern"
-    )"
+    result="$(_copilot_cli_spinner "Explain this shell command: $*")"
     __trim_string "$result"
 }
 
-_gh_copilot_suggest() {
+_copilot_cli_suggest() {
     local result
-    local pattern
-    # the suggestions start with 4 spaces
-    pattern='^    '
-    result="$(
-        _gh_copilot_spinner suggest -t shell "$@" |
-            grep "$pattern"
-    )"
+    result="$(_copilot_cli_spinner "Suggest a shell command for: $*. Output ONLY the command, no explanation.")"
+    result="$(__strip_markdown_code "$result")"
     __trim_string "$result"
 }
 
@@ -99,6 +87,15 @@ __trim_string() {
     : "${1#"${1%%[![:space:]]*}"}"
     : "${_%"${_##*[![:space:]]}"}"
     printf '%s\n' "$_"
+}
+
+__strip_markdown_code() {
+    # Remove markdown code blocks (```lang and ```) and extract just the command
+    local input="$1"
+    local result
+    # Remove opening ``` with optional language identifier and closing ```
+    result="$(echo "$input" | sed -E '/^```/d')"
+    __trim_string "$result"
 }
 
 _prompt_msg() {
@@ -117,7 +114,7 @@ zsh_gh_copilot_suggest() {
     local result
     # place the query in history
     print -s "$BUFFER"
-    result="$(_gh_copilot_suggest "$BUFFER")"
+    result="$(_copilot_cli_suggest "$BUFFER")"
     [ -z "$result" ] && _prompt_msg "No suggestion found" && return
     zle reset-prompt
     # replace the current buffer with the result
@@ -133,7 +130,7 @@ zsh_gh_copilot_explain() {
     zle end-of-line
 
     local result
-    result="$(_gh_copilot_explain "$BUFFER")"
+    result="$(_copilot_cli_explain "$BUFFER")"
     _prompt_msg "${result:-No explanation found}"
 }
 

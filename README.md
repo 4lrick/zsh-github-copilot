@@ -1,6 +1,6 @@
 # zsh-github-copilot
 
-> A `zsh` plugin for GitHub Copilot
+> A `zsh` plugin for GitHub Copilot CLI
 
 <p align="center">
   <img src="https://i.imgur.com/7C2CYZl.gif" alt="Demo gif">
@@ -8,12 +8,9 @@
 
 ## ✔️ Setup
 
-Requires the [GitHub CLI](https://github.com/cli/cli) with the [Copilot extension](https://github.com/github/gh-copilot) installed and configured.
+Requires the [GitHub Copilot CLI](https://github.com/github/copilot-cli) installed and configured.
 
-> The plugin will check for the extension and other dependencies at source time, to disable this check, set the `ZSH_GH_COPILOT_NO_CHECK` environment variable to `1`.
-
-> [!TIP]
-> Don't forget to update the `gh-copilot` extension with `gh extension upgrade gh-copilot` from time to time.
+> The plugin will check for the `copilot` command and other dependencies at source time. To disable this check, set the `ZSH_GH_COPILOT_NO_CHECK` environment variable to `1`.
 
 ## 🚀 Installation
 
