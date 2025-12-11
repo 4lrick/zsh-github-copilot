@@ -69,7 +69,8 @@ _copilot_cli_spinner() {
 
 _copilot_cli_explain() {
     local result
-    result="$(_copilot_cli_spinner "Explain this shell command: $*")"
+    result="$(_copilot_cli_spinner "Explain this shell command: $*. Format your explanation as bullet points starting with •")"
+    result="$(__strip_markdown_formatting "$result")"
     __trim_string "$result"
 }
 
@@ -90,12 +91,17 @@ __trim_string() {
 }
 
 __strip_markdown_code() {
-    # Remove markdown code blocks (```lang and ```) and extract just the command
+    # Remove markdown code blocks and extract just the command
     local input="$1"
     local result
-    # Remove opening ``` with optional language identifier and closing ```
     result="$(echo "$input" | sed -E '/^```/d')"
     __trim_string "$result"
+}
+
+__strip_markdown_formatting() {
+    # Remove markdown formatting (bold, italic, code blocks)
+    local input="$1"
+    echo "$input" | sed -E 's/\*\*([^*]+)\*\*/\1/g; s/\*([^*]+)\*/\1/g; s/`([^`]+)`/\1/g'
 }
 
 _prompt_msg() {
